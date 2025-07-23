@@ -33,54 +33,14 @@ vim.api.nvim_create_autocmd({ "TextYankPost" }, {
 })
 
 local function convert_to_pdf()
-  local full_path = vim.fn.expand "%:p" -- e.g., /home/neil/neil/notes/source/subdir/file_name.md
-
-  local base_source = "/home/neil/neil/notes/source"
-  local base_compiled = "/home/neil/neil/notes/compiled"
-
-  local source_abs = vim.fn.fnamemodify(base_source, ":p"):gsub("/+$", "")
-  local compiled_abs = vim.fn.fnamemodify(base_compiled, ":p"):gsub("/+$", "")
-
-  if not vim.fn.isdirectory(source_abs) then
-    vim.notify("Source directory does not exist: " .. source_abs, vim.log.levels.ERROR)
-    return
-  end
-
-  if not vim.fn.isdirectory(compiled_abs) then
-    vim.notify("Compiled directory does not exist. Attempting to create: " .. compiled_abs, vim.log.levels.INFO)
-    local mkdir_result = vim.fn.mkdir(compiled_abs, "p")
-    if mkdir_result == 0 then
-      vim.notify("Failed to create compiled directory: " .. compiled_abs, vim.log.levels.ERROR)
-      return
-    else
-      vim.notify("Successfully created compiled directory: " .. compiled_abs, vim.log.levels.INFO)
-    end
-  end
-
-  local source_with_slash = source_abs .. "/"
-  if not vim.startswith(full_path, source_with_slash) then
-    vim.notify("File is not inside source directory: " .. source_abs, vim.log.levels.ERROR)
-    return
-  end
-
-  local relative_path = full_path:sub(#source_abs + 2) -- +2 to remove the '/' separator
-
-  local relative_pdf_path = vim.fn.fnamemodify(relative_path, ":r") .. ".pdf"
-
-  local output_pdf = compiled_abs .. "/" .. relative_pdf_path
-
-  local output_dir = vim.fn.fnamemodify(output_pdf, ":h")
-
-  local mkdir_result = vim.fn.mkdir(output_dir, "p")
-  if mkdir_result == 0 and not vim.fn.isdirectory(output_dir) then
-    vim.notify("Failed to create directory: " .. output_dir, vim.log.levels.ERROR)
-    return
-  end
-
+  local full_path = vim.fn.expand "%:p"
   local file_dir = vim.fn.fnamemodify(full_path, ":h")
-
   local file_name = vim.fn.fnamemodify(full_path, ":t")
-
+  local file_basename = vim.fn.fnamemodify(full_path, ":t:r")
+  
+  -- Create PDF in the same directory as the markdown file
+  local output_pdf = file_dir .. "/" .. file_basename .. ".pdf"
+  
   local cmd = string.format(
     'cd "%s" && pandoc -f markdown-implicit_figures -s "%s" -o "%s" >/dev/null 2>&1',
     file_dir,
@@ -106,7 +66,7 @@ local function convert_to_pdf()
 end
 
 vim.api.nvim_create_autocmd("BufWritePost", {
-  pattern = "/home/neil/neil/notes/source/**/*.md",
+  pattern = "*.md",
   callback = function()
     convert_to_pdf()
   end,
