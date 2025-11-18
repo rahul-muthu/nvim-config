@@ -67,23 +67,48 @@ return {
     event        = "BufReadPre",
     dependencies = { "hrsh7th/cmp-nvim-lsp", "williamboman/mason-lspconfig.nvim" },
     config = function()
-      local lsp = require("lspconfig")
-      lsp.lua_ls  .setup { on_attach = on_attach, capabilities = capabilities }
-      lsp.pyright .setup { on_attach = on_attach, capabilities = capabilities }
-      lsp.bashls  .setup { on_attach = on_attach, capabilities = capabilities }
-      lsp.jsonls  .setup { on_attach = on_attach, capabilities = capabilities }
-      lsp.clangd  .setup { on_attach = on_attach, capabilities = capabilities }
+      -- Use new vim.lsp.config API (Neovim 0.11+)
+      vim.lsp.config("lua_ls", {
+        on_attach = on_attach,
+        capabilities = capabilities,
+      })
+      vim.lsp.enable("lua_ls")
+      
+      vim.lsp.config("pyright", {
+        on_attach = on_attach,
+        capabilities = capabilities,
+      })
+      vim.lsp.enable("pyright")
+      
+      vim.lsp.config("bashls", {
+        on_attach = on_attach,
+        capabilities = capabilities,
+      })
+      vim.lsp.enable("bashls")
+      
+      vim.lsp.config("jsonls", {
+        on_attach = on_attach,
+        capabilities = capabilities,
+      })
+      vim.lsp.enable("jsonls")
+      
+      vim.lsp.config("clangd", {
+        on_attach = on_attach,
+        capabilities = capabilities,
+      })
+      vim.lsp.enable("clangd")
     end,
   },
   {
-    "jose-elias-alvarez/null-ls.nvim",
+    "nvimtools/none-ls.nvim",
     event        = "BufReadPre",
     dependencies = { "nvim-lua/plenary.nvim" },
     config = function()
-      require("null-ls").setup {
+      local null_ls = require("null-ls")
+      null_ls.setup {
         sources = {
-          require("null-ls").builtins.formatting.stylua,
-          require("null-ls").builtins.formatting.black,
+          null_ls.builtins.formatting.stylua,
+          null_ls.builtins.formatting.black,
         },
       }
     end,
@@ -91,7 +116,7 @@ return {
   {
     "jay-babu/mason-null-ls.nvim",
     event        = "VeryLazy",
-    dependencies = { "williamboman/mason.nvim", "jose-elias-alvarez/null-ls.nvim" },
+    dependencies = { "williamboman/mason.nvim", "nvimtools/none-ls.nvim" },
     opts = {
       ensure_installed = { "stylua", "cpplint", "clang_format", "black" },
     },

@@ -40,3 +40,7 @@ vim.opt.linebreak = true
 vim.opt.ea = false
 vim.opt.guicursor = "n-v-c-i:block-Cursor"
 
+-- Disable optional providers to avoid warnings
+vim.g.loaded_perl_provider = 0
+vim.g.loaded_ruby_provider = 0
+

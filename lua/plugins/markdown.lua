@@ -7,6 +7,9 @@ return {
     ---@type render.md.UserConfig
     opts = {
       latex = {
+        enabled = true,
+      },
+      yaml = {
         enabled = false,
       },
     },
