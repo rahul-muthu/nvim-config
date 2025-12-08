@@ -2,6 +2,7 @@ return {
 
   {
     "nvim-lualine/lualine.nvim",
+    enabled = true,
     event = { "VimEnter", "InsertEnter", "BufReadPre", "BufAdd", "BufNew", "BufReadPost" },
     opts = function()
       local hide_in_width = function()
@@ -18,7 +19,7 @@ return {
       return {
         options = {
 
-          theme = "catppuccin",
+          theme = auto,
           globalstatus = true,
           disabled_filetypes = { "alpha", "dashboard" },
         },

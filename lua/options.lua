@@ -4,7 +4,6 @@ vim.opt.fileencoding = "utf-8"                  -- the encoding written to a fil
 vim.opt.ignorecase = true                       -- ignore case in search patterns
 vim.opt.mouse = ""                              -- Disable mouse
 vim.opt.pumheight = 10                          -- pop up menu height
-vim.opt.showmode = false                        -- we don't need to see things like -- INSERT -- anymore
 vim.opt.showtabline = 0                         -- always show tabs
 vim.opt.smartcase = true                        -- smart case
 vim.opt.smartindent = true                      -- make indenting smarter again

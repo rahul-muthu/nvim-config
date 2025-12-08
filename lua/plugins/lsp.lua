@@ -95,6 +95,15 @@ return {
       vim.lsp.config("clangd", {
         on_attach = on_attach,
         capabilities = capabilities,
+        settings = {
+          clangd = {
+            formatting = {
+              IndentWidth = 4,
+              TabWidth = 4,
+              UseTab = "Never",
+            },
+          },
+        },
       })
       vim.lsp.enable("clangd")
     end,
@@ -109,6 +118,9 @@ return {
         sources = {
           null_ls.builtins.formatting.stylua,
           null_ls.builtins.formatting.black,
+          null_ls.builtins.formatting.clang_format.with {
+            extra_args = { "--style={IndentWidth: 4, TabWidth: 4, UseTab: Never}" },
+          },
         },
       }
     end,

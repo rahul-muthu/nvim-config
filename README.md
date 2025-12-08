@@ -75,7 +75,6 @@ Here are the most important settings I use:
 | `<leader>h` | Clear search highlights |
 | `<C-Space>` | Toggle terminal |
 | `<leader>z` | Open PDF with Zathura |
-| `<leader>p` | Paste image from clipboard |
 
 ## 🔧 Language Support
 

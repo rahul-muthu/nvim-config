@@ -40,7 +40,7 @@ local function convert_to_pdf()
   
   -- Create PDF in the same directory as the markdown file
   local output_pdf = file_dir .. "/" .. file_basename .. ".pdf"
-  
+
   local cmd = string.format(
     'cd "%s" && pandoc -f markdown-implicit_figures -s "%s" -o "%s" >/dev/null 2>&1',
     file_dir,
