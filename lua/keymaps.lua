@@ -1,123 +1,93 @@
--- Shorten function name
-local keymap = vim.keymap.set
--- Silent keymap option
-local opts = { silent = true }
+local function map(mode, lhs, rhs, desc)
+	vim.keymap.set(mode, lhs, rhs, { silent = true, desc = desc })
+end
 
---Remap space as leader key
-keymap("", "<Space>", "<Nop>", opts)
-vim.g.mapleader = " "
+map("", "<Space>", "<Nop>")
 
--- Modes
---   normal_mode = "n",
---   insert_mode = "i",
---   visual_mode = "v",
---   visual_block_mode = "x",
---   term_mode = "t",
---   command_mode = "c",
+-- Window navigation and resizing
+map("n", "<C-h>", "<C-w>h", "Move to left window")
+map("n", "<C-j>", "<C-w>j", "Move to lower window")
+map("n", "<C-k>", "<C-w>k", "Move to upper window")
+map("n", "<C-l>", "<C-w>l", "Move to right window")
+map("n", "<C-Up>", "<cmd>resize -2<CR>", "Decrease window height")
+map("n", "<C-Down>", "<cmd>resize +2<CR>", "Increase window height")
+map("n", "<C-Right>", "<cmd>vertical resize -2<CR>", "Decrease window width")
+map("n", "<C-Left>", "<cmd>vertical resize +2<CR>", "Increase window width")
 
--- Normal --
--- Better window navigation
-keymap("n", "<C-h>", "<C-w>h", opts)
-keymap("n", "<C-j>", "<C-w>j", opts)
-keymap("n", "<C-k>", "<C-w>k", opts)
-keymap("n", "<C-l>", "<C-w>l", opts)
+-- Buffers and search
+map("n", "<S-l>", "<cmd>bnext<CR>", "Next buffer")
+map("n", "<S-h>", "<cmd>bprevious<CR>", "Previous buffer")
+map("n", "<leader>h", "<cmd>nohlsearch<CR>", "Clear search highlight")
 
--- Resize with arrows
-keymap("n", "<C-Up>", ":resize -2<CR>", opts)
-keymap("n", "<C-Down>", ":resize +2<CR>", opts)
-keymap("n", "<C-Right>", ":vertical resize -2<CR>", opts)
-keymap("n", "<C-Left>", ":vertical resize +2<CR>", opts)
+-- Keep the replaced text out of the default register.
+map("v", "p", '"_dP', "Paste without replacing register")
+map("v", "<", "<gv", "Indent left and reselect")
+map("v", ">", ">gv", "Indent right and reselect")
 
--- Navigate buffers
-keymap("n", "<S-l>", ":bnext<CR>", opts)
-keymap("n", "<S-h>", ":bprevious<CR>", opts)
+map("n", "-", "<cmd>Oil<CR>", "Open parent directory")
 
--- Clear highlights
-keymap("n", "<leader>h", "<cmd>nohlsearch<CR>", opts)
+local function compile_and_open_pdf()
+	local source = vim.fn.expand("%:p")
+	local directory = vim.fn.expand("%:p:h")
+	local output = directory .. "/" .. vim.fn.expand("%:t:r") .. ".pdf"
+	local extension = vim.fn.expand("%:e")
+	local command
 
--- Close buffer without deleting window arrangement
+	if extension == "tex" then
+		command = {
+			"pdflatex",
+			"-interaction=nonstopmode",
+			"-output-directory=" .. directory,
+			source,
+		}
+	elseif extension == "md" then
+		command = { "pandoc", source, "-o", output }
+	else
+		vim.notify("Unsupported file type: " .. extension, vim.log.levels.ERROR)
+		return
+	end
+
+	if vim.fn.executable(command[1]) == 0 then
+		vim.notify(command[1] .. " is not installed", vim.log.levels.ERROR)
+		return
+	end
+	if vim.fn.executable("zathura") == 0 then
+		vim.notify("zathura is not installed", vim.log.levels.ERROR)
+		return
+	end
+
+	vim.notify("Compiling " .. extension .. " to PDF…")
+	vim.system(command, { text = true }, function(result)
+		vim.schedule(function()
+			if result.code ~= 0 then
+				local message = vim.trim(result.stderr or "")
+				vim.notify(message ~= "" and message or "PDF compilation failed", vim.log.levels.ERROR)
+				return
+			end
+
+			if vim.fn.filereadable(output) == 0 then
+				vim.notify("Compilation finished without producing a PDF", vim.log.levels.ERROR)
+				return
+			end
+
+			vim.fn.jobstart({ "zathura", output }, { detach = true })
+		end)
+	end)
+end
+
+map("n", "<leader>z", compile_and_open_pdf, "Compile and open PDF")
+
 local function delete_buffer()
-  local current_buf = vim.api.nvim_get_current_buf()
-  local alt_buf = vim.fn.bufnr "#"
-  if vim.api.nvim_buf_is_valid(alt_buf) and vim.api.nvim_buf_is_loaded(alt_buf) then
-    vim.cmd("buffer " .. alt_buf)
-  else
-    vim.cmd "bnext"
-  end
-  vim.cmd("bdelete " .. current_buf)
+	local current = vim.api.nvim_get_current_buf()
+	local alternate = vim.fn.bufnr("#")
+
+	if vim.api.nvim_buf_is_valid(alternate) and vim.api.nvim_buf_is_loaded(alternate) then
+		vim.api.nvim_set_current_buf(alternate)
+	else
+		vim.cmd.bnext()
+	end
+
+	vim.api.nvim_buf_delete(current, {})
 end
 
-keymap("n", "<S-q>", delete_buffer, opts)
-
--- Better paste
-keymap("v", "p", '"_dP', opts)
-
--- Visual --
--- Stay in indent mode
-keymap("v", "<", "<gv", opts)
-keymap("v", ">", ">gv", opts)
-
--- Plugins --
-
--- Telescope
-keymap("n", "<leader>ff", ":Telescope find_files<CR>", opts)
-keymap("n", "<leader>ft", ":Telescope live_grep<CR>", opts)
-keymap("n", "<leader>fp", ":Telescope projects<CR>", opts)
-keymap("n", "<leader>fb", ":Telescope buffers<CR>", opts)
-
--- Comment
-keymap("n", "<leader>/", "<cmd>lua require('Comment.api').toggle.linewise.current()<CR>", opts)
-keymap("x", "<leader>/", "<esc><cmd>lua require('Comment.api').toggle.linewise(vim.fn.visualmode())<CR>", opts)
-
--- Oil
-keymap("n", "-", "<cmd>Oil<CR>", opts)
-
--- Notes
-local function open_zathura_for_current_file()
-  -- Get the current file's full path
-  local full_path = vim.fn.expand("%:p")
-  
-  -- Get the directory of the current file
-  local file_dir = vim.fn.expand("%:p:h")
-  
-  -- Get the filename without extension
-  local file_basename = vim.fn.expand("%:t:r")
-  
-  -- Construct the PDF path (same directory, same name, .pdf extension)
-  local output_pdf = file_dir .. "/" .. file_basename .. ".pdf"
-  
-  -- Check if PDF exists
-  if vim.fn.filereadable(output_pdf) == 0 then
-    vim.notify("PDF not found: " .. output_pdf, vim.log.levels.ERROR)
-    
-    -- Attempt to compile the LaTeX file if it's not found
-    if vim.fn.expand("%:e") == "tex" then
-      vim.notify("Attempting to compile LaTeX file...", vim.log.levels.INFO)
-      local compile_cmd = "pdflatex -interaction=nonstopmode -output-directory='" .. file_dir .. "' '" .. full_path .. "'"
-      vim.fn.system(compile_cmd)
-      
-      -- Check again if PDF exists after compilation
-      if vim.fn.filereadable(output_pdf) == 0 then
-        vim.notify("Compilation failed or PDF still not found.", vim.log.levels.ERROR)
-        return
-      else
-        vim.notify("Compilation successful!", vim.log.levels.INFO)
-      end
-    else
-      return
-    end
-  end
-
-  -- Open the PDF with Zathura
-  vim.fn.jobstart({ "zathura", output_pdf }, { detach = true })
-end
-
-keymap("n", "<leader>z", open_zathura_for_current_file, opts)
-
-
-
--- Buffer Navigation
-keymap("n", "<S-l>", ":bnext<CR>", opts)     -- Shift+L for next buffer
-keymap("n", "<S-h>", ":bprev<CR>", opts)     -- Shift+H for previous buffer
-keymap("n", "<leader>bd", ":bdelete<CR>", opts)  -- Space+bd to delete current buffer
-keymap("n", "<leader>ba", ":bufdo bd<CR>", opts) -- Space+ba to close all buffers
+map("n", "<S-q>", delete_buffer, "Delete buffer")

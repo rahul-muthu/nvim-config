@@ -9,9 +9,15 @@ local treesitter_languages = {
 	"python",
 }
 
+local pack_augroup = vim.api.nvim_create_augroup("config-pack", { clear = true })
+local treesitter_augroup = vim.api.nvim_create_augroup("config-treesitter", { clear = true })
+local lsp_augroup = vim.api.nvim_create_augroup("config-lsp", { clear = true })
+
 -- vim.pack does not have a `build` field, so native/build steps belong in a
 -- PackChanged hook. This runs after both a fresh install and an update.
 vim.api.nvim_create_autocmd("PackChanged", {
+	group = pack_augroup,
+	desc = "Run plugin build and update hooks",
 	callback = function(args)
 		local data = args.data
 		if not data or (data.kind ~= "install" and data.kind ~= "update") then
@@ -58,9 +64,6 @@ vim.pack.add({
 	-- Autopairs
 	{ src = "https://github.com/windwp/nvim-autopairs" },
 })
-
--- Plugin configurations
-local lsp_augroup = vim.api.nvim_create_augroup("lsp", {})
 
 -- Rosé Pine main with a transparent background and solid block cursor.
 require("rose-pine").setup({
@@ -114,6 +117,8 @@ treesitter.setup({})
 treesitter.install(treesitter_languages)
 
 vim.api.nvim_create_autocmd("FileType", {
+	group = treesitter_augroup,
+	desc = "Enable Treesitter highlighting when a parser is available",
 	callback = function(args)
 		if pcall(vim.treesitter.start, args.buf) then
 			vim.bo[args.buf].indentexpr = "v:lua.require'nvim-treesitter'.indentexpr()"
@@ -124,126 +129,78 @@ vim.api.nvim_create_autocmd("FileType", {
 -- LSP: attach handler
 vim.api.nvim_create_autocmd("LspAttach", {
 	group = lsp_augroup,
+	desc = "Enable completion and LSP keymaps",
 	callback = function(args)
 		local client = assert(vim.lsp.get_client_by_id(args.data.client_id))
 		if client:supports_method("textDocument/completion") then
 			vim.lsp.completion.enable(true, client.id, args.buf, { autotrigger = true })
 		end
 
-		local opts = { buffer = args.buf, silent = true }
-		vim.keymap.set("n", "gD", vim.lsp.buf.declaration, opts)
-		vim.keymap.set("n", "gd", vim.lsp.buf.definition, opts)
-		vim.keymap.set("n", "K", vim.lsp.buf.hover, opts)
-		vim.keymap.set("n", "gI", vim.lsp.buf.implementation, opts)
-		vim.keymap.set("n", "gr", vim.lsp.buf.references, opts)
-		vim.keymap.set("n", "gl", vim.diagnostic.open_float, opts)
-		vim.keymap.set("n", "<leader>la", vim.lsp.buf.code_action, opts)
-		vim.keymap.set("n", "<leader>lj", function()
+		local function map(lhs, rhs, desc)
+			vim.keymap.set("n", lhs, rhs, { buffer = args.buf, silent = true, desc = desc })
+		end
+
+		map("gD", vim.lsp.buf.declaration, "LSP declaration")
+		map("gd", vim.lsp.buf.definition, "LSP definition")
+		map("K", vim.lsp.buf.hover, "LSP hover")
+		map("gI", vim.lsp.buf.implementation, "LSP implementation")
+		map("gr", vim.lsp.buf.references, "LSP references")
+		map("gl", vim.diagnostic.open_float, "Line diagnostics")
+		map("<leader>la", vim.lsp.buf.code_action, "LSP code action")
+		map("<leader>lj", function()
 			vim.diagnostic.jump({ count = 1, float = true })
-		end, opts)
-		vim.keymap.set("n", "<leader>lk", function()
+		end, "Next diagnostic")
+		map("<leader>lk", function()
 			vim.diagnostic.jump({ count = -1, float = true })
-		end, opts)
-		vim.keymap.set("n", "<leader>lr", vim.lsp.buf.rename, opts)
-		vim.keymap.set("n", "<leader>ls", vim.lsp.buf.signature_help, opts)
-		vim.keymap.set("n", "<leader>lf", vim.lsp.buf.format, opts)
+		end, "Previous diagnostic")
+		map("<leader>lr", vim.lsp.buf.rename, "LSP rename")
+		map("<leader>ls", vim.lsp.buf.signature_help, "LSP signature help")
+		map("<leader>lf", vim.lsp.buf.format, "LSP format")
 	end,
 })
 
--- Mason + LSP: initialize only when an LSP-relevant filetype is opened
-local mason_setup_done = false
-local lsp_servers_by_ft = {
-	lua = "lua_ls",
-	python = "pyright",
-	bash = "bashls",
-	sh = "bashls",
-	json = "jsonls",
-	c = "clangd",
-	cpp = "clangd",
-}
+-- Mason installs the servers; nvim-lspconfig supplies their default configs.
+local lsp_servers = { "lua_ls", "pyright", "bashls", "jsonls", "clangd" }
+require("mason").setup()
+require("mason-lspconfig").setup({
+	ensure_installed = lsp_servers,
+})
+vim.lsp.enable(lsp_servers)
 
-local lsp_config_overrides = {
-	clangd = {
-		settings = {
-			clangd = {
-				formatting = {
-					IndentWidth = 4,
-					TabWidth = 4,
-					UseTab = "Never",
-				},
-			},
+-- Telescope
+local telescope = require("telescope")
+telescope.setup({
+	defaults = {
+		path_display = { "truncate" },
+		file_ignore_patterns = { ".git/", "node_modules/", "__pycache__/" },
+		preview = {
+			treesitter = { enable = false },
 		},
 	},
-}
-
-vim.api.nvim_create_autocmd("FileType", {
-	group = lsp_augroup,
-	callback = function()
-		local ft = vim.bo.filetype
-		if ft == "" then
-			return
-		end
-		local server = lsp_servers_by_ft[ft]
-		if not server then
-			return
-		end
-
-		if not mason_setup_done then
-			mason_setup_done = true
-			pcall(function()
-				require("mason").setup()
-				require("mason-lspconfig").setup({
-					ensure_installed = { "lua_ls", "pyright", "bashls", "jsonls", "clangd" },
-					automatic_installation = true,
-				})
-			end)
-		end
-
-		pcall(function()
-			vim.lsp.config(server, lsp_config_overrides[server] or {})
-			vim.lsp.enable(server)
-		end)
-	end,
+	pickers = {
+		find_files = { hidden = true },
+	},
 })
+pcall(telescope.load_extension, "fzf")
 
--- Telescope: setup immediately
-pcall(function()
-	local telescope = require("telescope")
-	telescope.setup({
-		defaults = {
-			path_display = { "truncate" },
-			file_ignore_patterns = { ".git/", "node_modules/", "__pycache__/" },
-			preview = {
-				treesitter = { enable = false },
-				-- hide_on_startup = true,
-			},
-		},
-		pickers = {
-			find_files = { hidden = true },
-		},
-	})
-	pcall(telescope.load_extension, "fzf")
-	local builtin = require("telescope.builtin")
-	vim.keymap.set("n", "<leader>f", builtin.find_files, { desc = "Find files" })
-	vim.keymap.set("n", "<leader>g", builtin.live_grep, { desc = "Live grep" })
-	vim.keymap.set("n", "<leader>b", builtin.buffers, { desc = "Buffers" })
-	vim.keymap.set("n", "<leader>H", builtin.help_tags, { desc = "Help tags" })
-	vim.keymap.set("n", "<leader>d", builtin.diagnostics, { desc = "Diagnostics" })
-	vim.keymap.set("n", "<leader>r", builtin.lsp_references, { desc = "LSP references" })
-end)
+local builtin = require("telescope.builtin")
+vim.keymap.set("n", "<leader>f", builtin.find_files, { desc = "Find files" })
+vim.keymap.set("n", "<leader>g", builtin.live_grep, { desc = "Live grep" })
+vim.keymap.set("n", "<leader>b", builtin.buffers, { desc = "Buffers" })
+vim.keymap.set("n", "<leader>H", builtin.help_tags, { desc = "Help tags" })
+vim.keymap.set("n", "<leader>d", builtin.diagnostics, { desc = "Diagnostics" })
+vim.keymap.set("n", "<leader>r", builtin.lsp_references, { desc = "LSP references" })
 
 -- Oil
-pcall(function()
-	require("oil").setup({
-		view_options = { show_hidden = true },
-	})
-end)
+require("oil").setup({
+	view_options = { show_hidden = true },
+})
 
--- nvim-autopairs
-pcall(function()
-	require("nvim-autopairs").setup({
-		check_ts = true,
-		disable_filetype = { "TelescopePrompt" },
-		ts_config = { lua = { "string", "source" } },
-	})
-end)
+-- Autopairs
+require("nvim-autopairs").setup({
+	check_ts = true,
+	disable_filetype = { "TelescopePrompt" },
+	ts_config = {
+		lua = { "string", "source" },
+	},
+})
