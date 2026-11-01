@@ -43,7 +43,7 @@ vim.api.nvim_create_autocmd("PackChanged", {
 -- Essential plugins
 vim.pack.add({
 	-- Colorscheme
-	{ src = "https://github.com/rose-pine/neovim", name = "rose-pine" },
+	{ src = "https://github.com/loctvl842/monokai-pro.nvim" },
 
 	-- File manager
 	{ src = "https://github.com/stevearc/oil.nvim" },
@@ -65,45 +65,17 @@ vim.pack.add({
 	{ src = "https://github.com/windwp/nvim-autopairs" },
 })
 
--- Rosé Pine main with a transparent background and solid block cursor.
-require("rose-pine").setup({
-	variant = "main",
-	dark_variant = "main",
-	styles = {
-		bold = true,
-		italic = false,
-		transparency = true,
-	},
-	highlight_groups = {
-		Normal = { bg = "none" },
-		NormalNC = { bg = "none" },
-		SignColumn = { bg = "none" },
-		LineNr = {
-			fg = "muted",
-			bg = "none",
-		},
-		CursorLineNr = {
-			fg = "text",
-			bg = "none",
-			bold = true,
-		},
-		Cursor = {
-			fg = "#0e0b00",
-			bg = "#dffff3",
-		},
-		CursorLine = { bg = "none" },
-		Visual = { bg = "highlight_med" },
-		StatusLine = {
-			fg = "text",
-			bg = "#292929",
-		},
-		StatusLineNC = {
-			fg = "muted",
-			bg = "#292929",
-		},
-	},
+-- Match sampsn/nvim: Monokai Pro's pro filter with a custom palette.
+require("monokai-pro").setup({
+	filter = "pro",
+	override_palette = function()
+		return {
+			text = "#cccccc",
+			background = "#2a2428",
+		}
+	end,
 })
-vim.cmd.colorscheme("rose-pine")
+vim.cmd.colorscheme("monokai-pro")
 vim.opt.guicursor = {
 	"n-v-c:block-Cursor",
 	"i-ci-ve:block-Cursor",
