@@ -65,17 +65,23 @@ vim.pack.add({
 	{ src = "https://github.com/windwp/nvim-autopairs" },
 })
 
--- Match sampsn/nvim: Monokai Pro's pro filter with a custom palette.
+-- Monokai Pro Spectrum with a custom background and orange cursor.
 require("monokai-pro").setup({
-	filter = "pro",
+	filter = "spectrum",
 	override_palette = function()
 		return {
 			text = "#cccccc",
-			background = "#2a2428",
+			background = "#11100f",
+		}
+	end,
+	override = function()
+		return {
+			Cursor = { fg = "#11100f", bg = "#ff7700" },
+			TermCursor = { fg = "#11100f", bg = "#ff7700" },
 		}
 	end,
 })
-vim.cmd.colorscheme("monokai-pro")
+vim.cmd.colorscheme("monokai-pro-spectrum")
 vim.opt.guicursor = {
 	"n-v-c:block-Cursor",
 	"i-ci-ve:block-Cursor",

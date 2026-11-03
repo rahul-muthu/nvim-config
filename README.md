@@ -1,8 +1,8 @@
 # Neovim, Kitty, and tmux configuration
 
-Neovim uses Monokai Pro's `pro` filter, with background `#2a2428` and text
-`#cccccc`, matching [sampsn/nvim](https://github.com/sampsn/nvim).
-Kitty and tmux use the same palette.
+Neovim uses Monokai Pro's `spectrum` filter, with background `#11100f`,
+text `#cccccc`, and cursor `#ff7700`. Kitty and tmux use the same palette;
+Kitty also sets the orange terminal cursor.
 
 ## Link the live configurations
 
